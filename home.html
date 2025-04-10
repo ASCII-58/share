@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件分享工具</title>
+    <style>
+        :root {
+            --primary-color: #8a2be2;
+            --accent-color: #03dac6;
+            --background-dark: #121212;
+            --card-background: #1e1e1e;
+            --hover-color: #292929;
+            --border-color: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --error-color: #cf6679;
+            --success-color: #03dac6;
+            --scrollbar-width: 8px;
+            --scrollbar-track: rgba(0, 0, 0, 0.1);
+            --scrollbar-thumb: rgba(138, 43, 226, 0.5);
+            --scrollbar-thumb-hover: rgba(138, 43, 226, 0.8);
+        }
+
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: var(--scrollbar-width);
+            height: var(--scrollbar-width);
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .app-wrapper {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 12px 0;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+            overflow: hidden;
+        }
+
+        .file-panel {
+            width: 40%;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background-color: var(--card-background);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            max-height: 100%;
+        }
+
+        .chat-panel {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            max-height: 100%;
+            height: 100%;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.2);
+            min-height: 50px;
+        }
+
+        .panel-header h2 {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin: 0;
+        }
+
+        .current-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: rgba(138, 43, 226, 0.1);
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: var(--primary-color);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .panel-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 5px;
+            width: auto;
+        }
+
+        .upload-section {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-background);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            padding: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 400px);
+            height: auto;
+            min-height: 200px;
+        }
+
+        .file-item {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .message-area {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: calc(100vh - 400px);
+            height: auto;
+            min-height: 200px;
+        }
+
+        .message-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-height: 100px;
+            width: 100%;
+            padding-bottom: 16px;
+        }
+
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            margin: 16px 0;
+        }
+
+        .message-bubble {
+            position: relative;
+            padding: 8px 12px;
+            background: #444;
+            border-radius: 8px;
+            max-width: 80%;
+            margin: 2px 0;
+            align-self: flex-start;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.own-message {
+            background: var(--primary-color);
+            align-self: flex-end;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-content {
+            font-size: 0.95em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .message-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-sender {
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .message-time {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input,
+        textarea,
+        button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 2px solid var(--primary-color);
+            border-color: transparent;
+        }
+
+        textarea {
+            resize: none;
+            height: 70px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #7424c1;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper input[type="file"]::-webkit-file-upload-button {
+            cursor: pointer;
+        }
+
+        .custom-file-input {
+            border: 2px dashed var(--border-color);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(138, 43, 226, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .custom-file-input:hover {
+            border-color: var(--primary-color);
+            background: rgba(138, 43, 226, 0.1);
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .message-form-container {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            background: var(--card-background);
+            max-height: 120px;
+            position: sticky;
+            bottom: 0;
+            background-color: var(--card-background);
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-form-container textarea {
+            max-height: 80px;
+        }
+
+        .selected-files {
+            max-height: 60px;
+            overflow-y: auto;
+            margin-top: 8px;
+            scrollbar-width: thin;
+        }
+
+        .selected-file {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                padding: 2px 12px;
+            }
+
+            .message-content {
+                margin-left: 52px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .file-panel {
+                width: 45%;
+            }
+
+            .chat-panel {
+                width: 55%;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .panel-header h2 {
+                font-size: 1rem;
+            }
+
+            textarea {
+                height: 60px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: calc(100vh - 50px);
+            }
+
+            .file-panel,
+            .chat-panel {
+                width: 100%;
+                height: 50%;
+                min-height: 300px;
+            }
+
+            .file-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .file-list,
+            .message-area {
+                padding: 12px;
+            }
+
+            .panel-toggle {
+                display: block;
+            }
+
+            .upload-section {
+                padding: 8px;
+            }
+
+            .message-form-container {
+                padding: 8px;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .panel-collapsed {
+                height: auto;
+                flex: 0 1 auto;
+            }
+
+            .panel-collapsed .file-list,
+            .panel-collapsed .message-area,
+            .panel-collapsed .user-list,
+            .panel-collapsed .upload-section,
+            .panel-collapsed .message-form-container {
+                display: none;
+            }
+
+            .panel-expanded {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            input,
+            textarea,
+            button {
+                padding: 8px;
+            }
+
+            .panel-header {
+                padding: 8px 10px;
+            }
+
+            .file-actions {
+                flex-direction: column;
+            }
+
+            .download-btn,
+            .delete-btn {
+                width: 100%;
+                margin-top: 5px;
+            }
+
+            .custom-file-input {
+                padding: 8px;
+                font-size: 0.9rem;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .new-message {
+            animation: pulse 0.5s ease;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --background-dark: #f5f5f5;
+                --card-background: #ffffff;
+                --hover-color: #f0f0f0;
+                --border-color: #e0e0e0;
+                --text-primary: #212121;
+                --text-secondary: #757575;
+            }
+
+            .header h1 {
+                background: var(--primary-color);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
+
+            input,
+            textarea {
+                background-color: #f9f9f9;
+                border: 1px solid #ddd;
+                color: #333;
+            }
+        }
+
+        .tabs {
+            display: flex;
+            padding: 0 15px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-background);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            position: relative;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            color: var(--primary-color);
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scaleX(0);
+            }
+
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        @supports (-moz-appearance:none) {
+
+            .file-list,
+            .message-area,
+            .selected-files {
+                scrollbar-width: thin;
+                scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+            }
+        }
+
+        #messageForm {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            flex: 1;
+            display: flex;
+        }
+
+        .form-group textarea {
+            flex: 1;
+        }
+
+        .scroll-to-bottom {
+            position: absolute;
+            bottom: 70px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .scroll-to-bottom.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .scroll-to-bottom:hover {
+            background: #7424c1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="app-wrapper">
+        <header class="header">
+            <h1>文件分享工具</h1>
+        </header>
+
+        <div class="main-container">
+            <div class="file-panel" id="filePanel">
+                <div class="panel-header">
+                    <h2>文件共享</h2>
+                    <div class="current-user">
+                        <div class="user-avatar" id="userAvatar"></div>
+                        <span id="userDisplayName"></span>
+                    </div>
+                </div>
+
+                <div class="upload-section">
+                    <form id="uploadForm">
+                        <div class="file-input-wrapper">
+                            <div class="custom-file-input">
+                                <span id="fileLabel">选择文件或拖放到这里</span>
+                                <div class="selected-files" id="selectedFiles"></div>
+                            </div>
+                            <input type="file" id="file" name="file" multiple required>
+                        </div>
+                        <input type="hidden" id="username" name="username">
+                        <button type="submit">上传文件</button>
+                        <div class="progress-container" id="uploadProgress">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="spinner" id="uploadSpinner"></div>
+                    </form>
+                    <div id="uploadStatus"></div>
+                </div>
+
+                <div id="fileList" class="file-list">
+                    <p>加载中...</p>
+                </div>
+            </div>
+
+            <div class="chat-panel" id="chatPanel">
+                <div class="panel-header">
+                    <h2>消息交流</h2>
+                    <button class="panel-toggle" id="chatToggle">展开/收起</button>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" id="messagesTab">消息</div>
+                    <div class="tab" id="usersTab">在线用户</div>
+                </div>
+
+                <div id="messageArea" class="message-area">
+                    <div class="scroll-to-bottom" id="scrollToBottom">↓</div>
+                    <p>加载中...</p>
+                </div>
+
+                <div id="userList" class="user-list" style="display: none;">
+                    <p>加载中...</p>
+                </div>
+
+                <div class="message-form-container">
+                    <form id="messageForm">
+                        <input type="hidden" id="messageUsername" name="username">
+                        <div class="form-group">
+                            <textarea id="message" name="message" placeholder="发送一条消息..." required></textarea>
+                        </div>
+                        <button type="submit">发送消息</button>
+                    </form>
+                    <div id="messageStatus"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let username;
+
+        function generateUsername() {
+            const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 去掉容易混淆的I和O
+            const numbers = '23456789'; // 去掉容易混淆的0和1
+
+            let username = '';
+            // 生成3个字母
+            for (let i = 0; i < 3; i++) {
+                username += letters.charAt(Math.floor(Math.random() * letters.length));
+            }
+            // 生成3个数字
+            for (let i = 0; i < 3; i++) {
+                username += numbers.charAt(Math.floor(Math.random() * numbers.length));
+            }
+
+            return username;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            username = localStorage.getItem('username');
+            if (!username) {
+                username = generateUsername();
+                localStorage.setItem('username', username);
+            }
+            document.getElementById('username').value = username;
+            document.getElementById('messageUsername').value = username;
+
+            // 更新用户显示
+            document.getElementById('userAvatar').textContent = username.charAt(0);
+            document.getElementById('userDisplayName').textContent = username;
+
+            connectWebSocket();
+
+            loadFiles();
+            loadUsers();
+            loadMessages();
+
+            document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+            document.getElementById('messageForm').addEventListener('submit', handleMessageSend);
+
+            document.getElementById('file').addEventListener('change', function (e) {
+                const files = Array.from(e.target.files);
+                const fileLabel = document.getElementById('fileLabel');
+                const selectedFiles = document.getElementById('selectedFiles');
+
+                if (files.length > 0) {
+                    fileLabel.textContent = '已选择:';
+                    selectedFiles.innerHTML = files.map(file => `
+                        <div class="selected-file">
+                            ${file.name} (${formatSize(file.size)})
+                        </div>
+                    `).join('');
+                } else {
+                    fileLabel.textContent = '选择文件或拖放到这里';
+                    selectedFiles.innerHTML = '';
+                }
+            });
+
+            document.getElementById('messagesTab').addEventListener('click', function () {
+                document.getElementById('messagesTab').classList.add('active');
+                document.getElementById('usersTab').classList.remove('active');
+                document.getElementById('messageArea').style.display = 'block';
+                document.getElementById('userList').style.display = 'none';
+            });
+
+            document.getElementById('usersTab').addEventListener('click', function () {
+                document.getElementById('usersTab').classList.add('active');
+                document.getElementById('messagesTab').classList.remove('active');
+                document.getElementById('userList').style.display = 'block';
+                document.getElementById('messageArea').style.display = 'none';
+            });
+
+            const fileToggle = document.getElementById('fileToggle');
+            const chatToggle = document.getElementById('chatToggle');
+            const filePanel = document.getElementById('filePanel');
+            const chatPanel = document.getElementById('chatPanel');
+
+            fileToggle.addEventListener('click', function () {
+                filePanel.classList.toggle('panel-collapsed');
+                filePanel.classList.toggle('panel-expanded');
+                if (chatPanel.classList.contains('panel-expanded')) {
+                    chatPanel.classList.remove('panel-expanded');
+                    chatPanel.classList.add('panel-collapsed');
+                }
+            });
+
+            chatToggle.addEventListener('click', function () {
+                chatPanel.classList.toggle('panel-collapsed');
+                chatPanel.classList.toggle('panel-expanded');
+                if (filePanel.classList.contains('panel-expanded')) {
+                    filePanel.classList.remove('panel-expanded');
+                    filePanel.classList.add('panel-collapsed');
+                }
+            });
+
+            function checkScreenSize() {
+                if (window.innerWidth <= 768) {
+                    if (!filePanel.classList.contains('panel-collapsed') &&
+                        !chatPanel.classList.contains('panel-collapsed')) {
+                        filePanel.classList.add('panel-collapsed');
+                        chatPanel.classList.add('panel-expanded');
+                    }
+                } else {
+                    filePanel.classList.remove('panel-collapsed', 'panel-expanded');
+                    chatPanel.classList.remove('panel-collapsed', 'panel-expanded');
+                }
+            }
+
+            window.addEventListener('resize', checkScreenSize);
+            checkScreenSize();
+
+            const dropArea = document.querySelector('.custom-file-input');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventName(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropArea.classList.add('highlight');
+            }
+
+            function unhighlight() {
+                dropArea.classList.remove('highlight');
+            }
+
+            dropArea.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length) {
+                    document.getElementById('file').files = files;
+                    const fileLabel = document.getElementById('fileLabel');
+                    const selectedFiles = document.getElementById('selectedFiles');
+
+                    fileLabel.textContent = '已选择:';
+                    selectedFiles.innerHTML = Array.from(files).map(file => `
+                        <div class="selected-file">
+                            ${file.name} (${formatSize(file.size)})
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // 处理消息区域滚动
+            const messageArea = document.getElementById('messageArea');
+            const scrollToBottom = document.getElementById('scrollToBottom');
+
+            messageArea.addEventListener('scroll', function () {
+                // 如果距离底部超过200px，显示按钮
+                const isScrolledUp = messageArea.scrollHeight - messageArea.scrollTop - messageArea.clientHeight > 200;
+                if (isScrolledUp) {
+                    scrollToBottom.classList.add('visible');
+                } else {
+                    scrollToBottom.classList.remove('visible');
+                }
+            });
+
+            scrollToBottom.addEventListener('click', function () {
+                messageArea.scrollTop = messageArea.scrollHeight;
+            });
+        });
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = function () {
+                console.log('WebSocket连接已建立');
+                setInterval(function () {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send('ping');
+                    }
+                }, 30000);
+            };
+
+            ws.onmessage = function (event) {
+                if (event.data === 'pong') {
+                    return;
+                }
+
+                if (event.data === 'update_files') {
+                    loadFiles();
+                } else if (event.data === 'new_message') {
+                    loadMessages();
+                }
+
+                loadUsers();
+            };
+
+            ws.onclose = function () {
+                console.log('WebSocket连接已关闭，尝试重新连接...');
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            ws.onerror = function (error) {
+                console.error('WebSocket错误:', error);
+            };
+        }
+
+        function getProgressId(filename) {
+            // 使用 encodeURIComponent 替代 btoa 来处理中文字符
+            return 'download-' + encodeURIComponent(filename).replace(/%/g, '');
+        }
+
+        function createProgressElement(filename) {
+            const progressId = getProgressId(filename);
+            return `
+                <div class="file-action">
+                    <button class="download-btn" onclick="downloadFile('${filename}')">下载</button>
+                    <div class="progress-container" id="${progressId}-progress" style="display:none">
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="progress-status">
+                            <span class="progress-text">准备下载...</span>
+                            <span class="progress-speed"></span>
+                        </div>
+                    </div>
+                    <div class="spinner" id="${progressId}-spinner" style="display:none"></div>
+                </div>
+            `;
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                pdf: '📄',
+                doc: '📝',
+                docx: '📝',
+                xls: '📊',
+                xlsx: '📊',
+                txt: '📃',
+                jpg: '🖼️',
+                jpeg: '🖼️',
+                png: '🖼️',
+                gif: '🖼️',
+                mp3: '🎵',
+                mp4: '🎥',
+                zip: '📦',
+                rar: '📦',
+                '7z': '📦'
+            };
+            return icons[ext] || '📎';
+        }
+
+        async function loadFiles() {
+            try {
+                showProgressBar();
+                const response = await fetch('/list_files');
+                const data = await response.json();
+
+                const fileListElement = document.getElementById('fileList');
+                if (data.files && data.files.length > 0) {
+                    fileListElement.innerHTML = data.files.map(file => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon">
+                                    ${getFileIcon(file.name)}
+                                </div>
+                                <div class="file-details">
+                                    <div class="file-name">${file.name}</div>
+                                    <div class="file-meta">
+                                        ${formatSize(file.size)} • 上传者: ${file.uploader} • 
+                                        ${new Date(file.upload_time * 1000).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="download-btn" onclick="downloadFile('${file.name}')">下载</button>
+                                ${file.uploader === username ?
+                            `<button class="delete-btn" onclick="deleteFile('${file.name}')">删除</button>`
+                            : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    fileListElement.innerHTML = '<p class="empty-message">暂无文件</p>';
+                }
+                hideProgressBar();
+            } catch (error) {
+                console.error('加载文件列表失败:', error);
+                document.getElementById('fileList').innerHTML = '<p class="error-message">加载文件列表失败</p>';
+                hideProgressBar();
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                showProgressBar();
+                const response = await fetch('/list_users');
+                const data = await response.json();
+
+                const userListElement = document.getElementById('userList');
+                if (data.users && data.users.length > 0) {
+                    userListElement.innerHTML = data.users.map(user => {
+                        const initials = user.name.charAt(0).toUpperCase();
+                        return `
+                            <div class="user-item">
+                                <div class="user-avatar">${initials}</div>
+                                <div class="user-details">
+                                    <div class="user-name">${user.name}</div>
+                                    <div class="user-meta">
+                                        最后活动: ${formatTimeSince(user.last_active)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    userListElement.innerHTML = '<p class="empty-message">暂无在线用户</p>';
+                }
+                hideProgressBar();
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+                document.getElementById('userList').innerHTML = '<p class="error-message">加载用户列表失败</p>';
+                hideProgressBar();
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                showProgressBar();
+                const response = await fetch('/list_messages');
+                const data = await response.json();
+
+                const messageAreaElement = document.getElementById('messageArea');
+                if (data.messages && data.messages.length > 0) {
+                    const sortedMessages = data.messages.sort((a, b) => a.timestamp - b.timestamp);
+                    const messageGroups = groupMessagesBySender(sortedMessages);
+
+                    messageAreaElement.innerHTML = `
+                        <div class="message-list">
+                            ${messageGroups.map(group => renderMessageGroup(group)).join('')}
+                        </div>
+                    `;
+
+                    messageAreaElement.scrollTop = messageAreaElement.scrollHeight;
+                } else {
+                    messageAreaElement.innerHTML = '<div class="empty-message">暂无消息</div>';
+                }
+                hideProgressBar();
+            } catch (error) {
+                console.error('加载消息失败:', error);
+                messageAreaElement.innerHTML = '<div class="error-message">加载消息失败</div>';
+                hideProgressBar();
+            }
+        }
+
+        function groupMessagesBySender(messages) {
+            const groups = [];
+            let currentGroup = [];
+
+            messages.forEach((message, index) => {
+                if (index === 0 ||
+                    messages[index - 1].sender !== message.sender ||
+                    message.timestamp - messages[index - 1].timestamp > 300) {
+                    if (currentGroup.length > 0) {
+                        groups.push(currentGroup);
+                    }
+                    currentGroup = [message];
+                } else {
+                    currentGroup.push(message);
+                }
+            });
+
+            if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+            }
+
+            return groups;
+        }
+
+        function renderMessageGroup(messages) {
+            const isOwnMessage = messages[0].sender === username;
+            return `
+                <div class="message-group">
+                    <div class="message-info">
+                        <span class="message-sender">${messages[0].sender}</span>
+                        <span class="message-time">${formatMessageTime(messages[0].timestamp)}</span>
+                    </div>
+                    ${messages.map(msg => `
+                        <div class="message-bubble ${isOwnMessage ? 'own-message' : ''}">
+                            <div class="message-content">${msg.content}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function formatMessageTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date >= today) {
+                return `今天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+            } else if (date >= yesterday) {
+                return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                return date.toLocaleDateString('zh-CN', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+
+        async function handleUpload(event) {
+            event.preventDefault();
+
+            const file = document.getElementById('file').files[0];
+            if (!file) return;
+
+            username = localStorage.getItem('username');
+            if (!username) {
+                username = generateUsername();
+                localStorage.setItem('username', username);
+            }
+
+            const statusElement = document.getElementById('uploadStatus');
+            statusElement.textContent = '上传中...';
+            statusElement.className = 'status-visible';
+
+            try {
+                showProgressBar();
+
+                // 检查文件大小
+                if (file.size <= 10 * 1024 * 1024) { // 10MB
+                    // 小文件直接上传
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('username', username);
+
+                    const result = await uploadWithProgress('/upload', formData);
+                    if (result.status === 'success') {
+                        handleUploadSuccess(statusElement);
+                    } else {
+                        handleUploadError(statusElement, result.detail);
+                    }
+                } else {
+                    // 大文件分片上传
+                    const chunkSize = 5 * 1024 * 1024; // 5MB
+                    const totalChunks = Math.ceil(file.size / chunkSize);
+
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+
+                        const formData = new FormData();
+                        formData.append('file', chunk, file.name);
+                        formData.append('chunk_number', i.toString());
+                        formData.append('total_chunks', totalChunks.toString());
+                        formData.append('filename', file.name);
+                        formData.append('username', username);
+
+                        statusElement.textContent = `上传中... ${Math.round((i + 1) * 100 / totalChunks)}%`;
+
+                        const result = await uploadWithProgress('/upload_chunk', formData);
+                        if (result.status !== 'success') {
+                            handleUploadError(statusElement, `分片 ${i + 1} 上传失败`);
+                            return;
+                        }
+                    }
+
+                    handleUploadSuccess(statusElement);
+                }
+            } catch (error) {
+                handleUploadError(statusElement, error.message);
+            } finally {
+                hideProgressBar();
+            }
+        }
+
+        async function uploadWithProgress(url, formData) {
+            const xhr = new XMLHttpRequest();
+            const progressBar = document.querySelector('#uploadProgress');
+            const spinner = document.querySelector('#uploadSpinner');
+
+            return new Promise((resolve, reject) => {
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const progress = (event.loaded / event.total) * 100;
+                        progressBar.style.display = 'block';
+                        progressBar.querySelector('.progress-bar').style.width = progress + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        resolve(JSON.parse(xhr.response));
+                    } else {
+                        reject(new Error('Upload failed'));
+                    }
+                    progressBar.style.display = 'none';
+                    spinner.style.display = 'none';
+                });
+
+                xhr.addEventListener('error', () => {
+                    reject(new Error('Upload failed'));
+                    progressBar.style.display = 'none';
+                    spinner.style.display = 'none';
+                });
+
+                xhr.open('POST', url);
+                spinner.style.display = 'block';
+                xhr.send(formData);
+            });
+        }
+
+        async function downloadWithProgress(filename) {
+            const progressId = getProgressId(filename);
+            const progressContainer = document.getElementById(`${progressId}-progress`);
+            const spinner = document.getElementById(`${progressId}-spinner`);
+
+            if (!progressContainer || !spinner) {
+                console.error('Progress elements not found');
+                window.location.href = `/download/${filename}`;
+                return;
+            }
+
+            try {
+                progressContainer.style.display = 'block';
+                spinner.style.display = 'block';
+
+                const response = await fetch(`/download/${filename}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const contentLength = response.headers.get('Content-Length');
+                if (!contentLength) {
+                    throw new Error('Content-Length header missing');
+                }
+
+                const reader = response.body.getReader();
+                let receivedLength = 0;
+                const chunks = [];
+                let lastTime = Date.now();
+                let lastBytes = 0;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+
+                    if (done) break;
+
+                    chunks.push(value);
+                    receivedLength += value.length;
+
+                    const now = Date.now();
+                    const timeElapsed = now - lastTime;
+
+                    if (timeElapsed > 1000) { // 每秒更新一次速度
+                        const bytesPerSecond = ((receivedLength - lastBytes) * 1000) / timeElapsed;
+                        const speed = formatSpeed(bytesPerSecond);
+                        progressContainer.querySelector('.progress-speed').textContent = speed;
+                        lastTime = now;
+                        lastBytes = receivedLength;
+                    }
+
+                    const progress = (receivedLength / contentLength) * 100;
+                    const progressBar = progressContainer.querySelector('.progress-bar');
+                    const progressText = progressContainer.querySelector('.progress-text');
+
+                    if (progressBar && progressText) {
+                        progressBar.style.width = progress + '%';
+                        progressText.textContent = `${Math.round(progress)}%`;
+                        progressContainer.querySelector('.progress-speed').textContent = speed;
+                    }
+                }
+
+                const blob = new Blob(chunks);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('Download failed:', error);
+                window.location.href = `/download/${filename}`;
+            } finally {
+                progressContainer.style.display = 'none';
+                spinner.style.display = 'none';
+            }
+        }
+
+        function formatSpeed(bytesPerSecond) {
+            if (bytesPerSecond < 1024) return bytesPerSecond.toFixed(1) + ' B/s';
+            else if (bytesPerSecond < 1048576) return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+            else if (bytesPerSecond < 1073741824) return (bytesPerSecond / 1048576).toFixed(1) + ' MB/s';
+            else return (bytesPerSecond / 1073741824).toFixed(1) + ' GB/s';
+        }
+
+        async function downloadFile(filename) {
+            const progressId = getProgressId(filename);
+            const progressContainer = document.getElementById(`${progressId}-progress`);
+            const spinner = document.getElementById(`${progressId}-spinner`);
+
+            if (!progressContainer || !spinner) {
+                window.location.href = `/download/${filename}`;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/download/${filename}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const contentLength = response.headers.get('Content-Length');
+                if (!contentLength || parseInt(contentLength) <= 10 * 1024 * 1024) {
+                    window.location.href = `/download/${filename}`;
+                    return;
+                }
+
+                await downloadWithProgress(filename);
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert('下载失败: ' + error.message);
+                window.location.href = `/download/${filename}`;
+            }
+        }
+
+        async function handleMessageSend(event) {
+            event.preventDefault();
+
+            const formData = new FormData(document.getElementById('messageForm'));
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value.trim();
+
+            if (!message) return;
+
+            username = localStorage.getItem('username');
+            if (!username) {
+                username = generateUsername();
+                localStorage.setItem('username', username);
+            }
+            document.getElementById('messageUsername').value = username;
+
+            const statusElement = document.getElementById('messageStatus');
+            statusElement.textContent = '发送中...';
+            statusElement.className = 'status-visible';
+
+            try {
+                showProgressBar();
+                const response = await fetch('/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(formData)
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    statusElement.textContent = '消息发送成功!';
+                    statusElement.className = 'status-visible status-success';
+                    messageInput.value = '';
+
+                    setTimeout(() => {
+                        statusElement.className = '';
+                    }, 3000);
+                } else {
+                    statusElement.textContent = '发送失败: ' + result.detail;
+                    statusElement.className = 'status-visible status-error';
+                }
+                hideProgressBar();
+            } catch (error) {
+                statusElement.textContent = '发送失败: ' + error.message;
+                statusElement.className = 'status-visible status-error';
+                hideProgressBar();
+            }
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`确定要删除文件 "${filename}"?`)) {
+                return;
+            }
+
+            const statusElement = document.getElementById('uploadStatus');
+            try {
+                showProgressBar();
+                const response = await fetch(`/delete/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: username })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    statusElement.textContent = '文件删除成功！';
+                    statusElement.className = 'status-visible status-success';
+                    setTimeout(() => {
+                        statusElement.className = '';
+                        loadFiles(); // 重新加载文件列表
+                    }, 2000);
+                } else {
+                    throw new Error(result.detail || '删除失败');
+                }
+            } catch (error) {
+                statusElement.textContent = '删除失败: ' + error.message;
+                statusElement.className = 'status-visible status-error';
+            } finally {
+                hideProgressBar();
+            }
+        }
+
+        function handleUploadError(statusElement, message) {
+            statusElement.textContent = '上传失败: ' + message;
+            statusElement.className = 'status-visible status-error';
+            document.getElementById('fileLabel').textContent = '选择文件或拖放到这里';
+            document.getElementById('file').value = '';
+        }
+
+        function handleUploadSuccess(statusElement) {
+            statusElement.textContent = '文件上传成功!';
+            statusElement.className = 'status-visible status-success';
+            document.getElementById('fileLabel').textContent = '选择文件或拖放到这里';
+            document.getElementById('file').value = '';
+            setTimeout(() => {
+                statusElement.className = '';
+            }, 3000);
+        }
+
+        function showProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '70%';
+        }
+
+        function hideProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.width = '0';
+            }, 300);
+        }
+
+        function formatTimeSince(timestamp) {
+            const now = new Date();
+            const date = new Date(timestamp * 1000);
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return '刚刚';
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}分钟前`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}小时前`;
+
+            const days = Math.floor(hours / 24);
+            if (days < 7) return `${days}天前`;
+
+            return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+            else return (bytes / 1073741824).toFixed(1) + ' GB';
+        }
+    </script>
+</body>
+
+</html>
